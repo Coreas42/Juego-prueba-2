@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Aethelgard: Echoes of Soltia - Prototipo</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+    body {
+      background: #0d0e15;
+      color: #eee;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      border: 2px solid #3a3f58;
+      box-shadow: 0 0 25px rgba(0,0,0,0.8);
+    }
+    canvas {
+      image-rendering: pixelated;
+      background: #1e232d;
+      display: block;
+    }
+    /* Controles táctiles */
+    #touch-controls {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 480px;
+      padding: 12px 16px;
+      touch-action: none;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(3, 44px);
+      gap: 3px;
+    }
+    .touch-btn {
+      background: rgba(45, 52, 71, 0.75);
+      border: 2px solid #5d6785;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .touch-btn:active { background: rgba(93, 103, 133, 0.9); }
+    .btn-action {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(184, 50, 50, 0.8);
+      border: 3px solid #e74c3c;
+      font-size: 15px;
+      align-self: center;
+    }
+    .btn-action:active { background: #c0392b; }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="gameCanvas" width="320" height="240"></canvas>
+  </div>
+
+  <div id="touch-controls">
+    <div class="dpad">
+      <div></div><button class="touch-btn" id="btn-up">▲</button><div></div>
+      <button class="touch-btn" id="btn-left">◀</button><div></div><button class="touch-btn" id="btn-right">▶</button>
+      <div></div><button class="touch-btn" id="btn-down">▼</button><div></div>
+    </div>
+    <button class="touch-btn btn-action" id="btn-atk">ATK</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      const scale = Math.min(window.innerWidth / 330, (window.innerHeight - 150) / 250, 2.5);
+      canvas.style.width = Math.floor(320 * scale) + "px";
+      canvas.style.height = Math.floor(240 * scale) + "px";
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // Estado del Jugador
+    const player = {
+      x: 152, y: 120, w: 16, h: 16,
+      speed: 1.8, dir: "down",
+      hp: 100, maxHp: 100,
+      attackCooldown: 0,
+      attackBox: null
+    };
+
+    // NPC: Maestro Torval
+    const npcTorval = {
+      x: 70, y: 70, w: 16, h: 16,
+      name: "Torval",
+      dialog: "¡Mantén firme la guardia! Las bestias del bosque acechan."
+    };
+
+    // Muñeco de práctica
+    const dummy = {
+      x: 230, y: 80, w: 16, h: 16,
+      hp: 100, maxHp: 100,
+      hurtTimer: 0
+    };
+
+    // Números flotantes de daño
+    let damageNumbers = [];
+
+    // Sistema de diálogo
+    let activeDialog = null;
+
+    // Entradas
+    const keys = { up: false, down: false, left: false, right: false, action: false, actionPressed: false };
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowUp" || e.key === "w") keys.up = true;
+      if (e.key === "ArrowDown" || e.key === "s") keys.down = true;
+      if (e.key === "ArrowLeft" || e.key === "a") keys.left = true;
+      if (e.key === "ArrowRight" || e.key === "d") keys.right = true;
+      if (e.key === " " || e.key === "z" || e.key === "Enter") {
+        if (!keys.action) keys.actionPressed = true;
+        keys.action = true;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowUp" || e.key === "w") keys.up = false;
+      if (e.key === "ArrowDown" || e.key === "s") keys.down = false;
+      if (e.key === "ArrowLeft" || e.key === "a") keys.left = false;
+      if (e.key === "ArrowRight" || e.key === "d") keys.right = false;
+      if (e.key === " " || e.key === "z" || e.key === "Enter") keys.action = false;
+    });
+
+    function bindTouch(id) {
+      const btn = document.getElementById(id);
+      const keyMap = { "btn-up": "up", "btn-down": "down", "btn-left": "left", "btn-right": "right" };
+      if (id === "btn-atk") {
+        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); keys.action = true; keys.actionPressed = true; });
+        btn.addEventListener("pointerup", (e) => { e.preventDefault(); keys.action = false; });
+      } else {
+        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); keys[keyMap[id]] = true; });
+        btn.addEventListener("pointerup", (e) => { e.preventDefault(); keys[keyMap[id]] = false; });
+        btn.addEventListener("pointercancel", (e) => { e.preventDefault(); keys[keyMap[id]] = false; });
+      }
+    }
+    ["btn-up", "btn-down", "btn-left", "btn-right", "btn-atk"].forEach(bindTouch);
+
+    function update() {
+      // Si hay cuadro de diálogo abierto
+      if (activeDialog) {
+        if (keys.actionPressed) {
+          activeDialog = null;
+          keys.actionPressed = false;
+        }
+        return;
+      }
+
+      // Movimiento
+      let dx = 0, dy = 0;
+      if (keys.up) { dy -= 1; player.dir = "up"; }
+      if (keys.down) { dy += 1; player.dir = "down"; }
+      if (keys.left) { dx -= 1; player.dir = "left"; }
+      if (keys.right) { dx += 1; player.dir = "right"; }
+
+      if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+      // Límites del patio de Oakhaven (colisión con bordes)
+      player.x = Math.max(24, Math.min(296 - player.w, player.x + dx * player.speed));
+      player.y = Math.max(34, Math.min(220 - player.h, player.y + dy * player.speed));
+
+      // Acción: Atacar o Hablar
+      if (player.attackCooldown > 0) player.attackCooldown--;
+
+      if (keys.actionPressed) {
+        keys.actionPressed = false;
+
+        // Comprobar cercanía con el NPC Torval para hablar
+        const distNpc = Math.hypot((player.x + 8) - (npcTorval.x + 8), (player.y + 8) - (npcTorval.y + 8));
+        if (distNpc < 24) {
+          activeDialog = { speaker: npcTorval.name, text: npcTorval.dialog };
+          return;
+        }
+
+        // Ejecutar ataque si no está en cooldown
+        if (player.attackCooldown === 0) {
+          player.attackCooldown = 18;
+          let hb = { x: player.x, y: player.y, w: 16, h: 16 };
+          if (player.dir === "up") { hb.y -= 14; hb.h = 14; }
+          if (player.dir === "down") { hb.y += player.h; hb.h = 14; }
+          if (player.dir === "left") { hb.x -= 14; hb.w = 14; }
+          if (player.dir === "right") { hb.x += player.w; hb.w = 14; }
+          player.attackBox = hb;
+
+          // Impacto en el muñeco de prueba
+          if (
+            hb.x < dummy.x + dummy.w && hb.x + hb.w > dummy.x &&
+            hb.y < dummy.y + dummy.h && hb.y + hb.h > dummy.y
+          ) {
+            const dmg = 15;
+            dummy.hp = Math.max(0, dummy.hp - dmg);
+            dummy.hurtTimer = 8;
+            if (player.dir === "up") dummy.y -= 6;
+            if (player.dir === "down") dummy.y += 6;
+            if (player.dir === "left") dummy.x -= 6;
+            if (player.dir === "right") dummy.x += 6;
+
+            damageNumbers.push({ x: dummy.x + 4, y: dummy.y - 4, text: dmg, alpha: 1 });
+            if (dummy.hp <= 0) dummy.hp = dummy.maxHp; // Se restablece para seguir practicando
+          }
+        }
+      }
+
+      if (player.attackCooldown < 10) player.attackBox = null;
+      if (dummy.hurtTimer > 0) dummy.hurtTimer--;
+
+      // Animar números flotantes
+      damageNumbers.forEach(n => { n.y -= 0.5; n.alpha -= 0.03; });
+      damageNumbers = damageNumbers.filter(n => n.alpha > 0);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, 320, 240);
+
+      // Suelo de adoquines de Oakhaven
+      ctx.fillStyle = "#2d323f";
+      ctx.fillRect(0, 0, 320, 240);
+
+      // Muros del recinto
+      ctx.fillStyle = "#1b1d28";
+      ctx.fillRect(0, 0, 320, 24);
+      ctx.fillRect(0, 226, 320, 14);
+      ctx.fillRect(0, 0, 18, 240);
+      ctx.fillRect(302, 0, 18, 240);
+
+      // Puerta Norte (hacia el Bosque) y Puerta Sur (hacia las Ruinas)
+      ctx.fillStyle = "#8a6f4d";
+      ctx.fillRect(144, 0, 32, 24);
+      ctx.fillRect(144, 226, 32, 14);
+
+      // NPC Torval (Verde bosque con emblema de forja)
+      ctx.fillStyle = "#27ae60";
+      ctx.fillRect(npcTorval.x, npcTorval.y, npcTorval.w, npcTorval.h);
+      ctx.fillStyle = "#f1c40f";
+      ctx.font = "8px monospace";
+      ctx.fillText("[Torval]", npcTorval.x - 8, npcTorval.y - 4);
+
+      // Muñeco de paja
+      ctx.fillStyle = dummy.hurtTimer > 0 ? "#ffffff" : "#d35400";
+      ctx.fillRect(dummy.x, dummy.y, dummy.w, dummy.h);
+      ctx.fillStyle = "#aaa";
+      ctx.fillText("Muñeco", dummy.x - 4, dummy.y - 4);
+
+      // Jugador (Azul templario)
+      ctx.fillStyle = "#2980b9";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+
+      // Indicador de orientación del jugador
+      ctx.fillStyle = "#ecf0f1";
+      if (player.dir === "up") ctx.fillRect(player.x + 5, player.y + 2, 6, 3);
+      if (player.dir === "down") ctx.fillRect(player.x + 5, player.y + 11, 6, 3);
+      if (player.dir === "left") ctx.fillRect(player.x + 2, player.y + 5, 3, 6);
+      if (player.dir === "right") ctx.fillRect(player.x + 11, player.y + 5, 3, 6);
+
+      // Tajo de espada activo
+      if (player.attackBox) {
+        ctx.fillStyle = "#f39c12";
+        ctx.fillRect(player.attackBox.x, player.attackBox.y, player.attackBox.w, player.attackBox.h);
+      }
+
+      // Números flotantes de daño
+      damageNumbers.forEach(n => {
+        ctx.fillStyle = `rgba(241, 196, 15, ${n.alpha})`;
+        ctx.font = "bold 10px monospace";
+        ctx.fillText(n.text, n.x, n.y);
+      });
+
+      // Caja de diálogo clásica retro
+      if (activeDialog) {
+        ctx.fillStyle = "rgba(10, 12, 18, 0.92)";
+        ctx.strokeStyle = "#f1c40f";
+        ctx.lineWidth = 2;
+        ctx.fillRect(16, 150, 288, 74);
+        ctx.strokeRect(16, 150, 288, 74);
+
+        ctx.fillStyle = "#f39c12";
+        ctx.font = "bold 9px monospace";
+        ctx.fillText(activeDialog.speaker, 26, 166);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "8px monospace";
+        ctx.fillText(activeDialog.text, 26, 184);
+
+        ctx.fillStyle = "#bdc3c7";
+        ctx.fillText("[Toca ATK / Espacio para cerrar]", 130, 214);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>
