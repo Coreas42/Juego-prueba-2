@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Aethelgard: Echoes of Soltia - Prototipo</title>
+  <title>Aethelgard: Echoes of Soltia</title>
   <style>
-    * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
     body {
-      background: #0d0e15;
+      background: #090a0f;
       color: #eee;
-      font-family: monospace;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -17,23 +23,278 @@
       min-height: 100vh;
       overflow: hidden;
     }
-    #game-container {
+    #viewport {
       position: relative;
-      border: 2px solid #3a3f58;
-      box-shadow: 0 0 25px rgba(0,0,0,0.8);
+      border: 2px solid #2e3440;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
+      background: #000;
     }
     canvas {
       image-rendering: pixelated;
-      background: #1e232d;
       display: block;
     }
+
+    /* HUD superior */
+    #hud-top {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      right: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .hud-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .bar-wrap {
+      width: 110px;
+      height: 9px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #444;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill-hp {
+      height: 100%;
+      background: #e74c3c;
+      width: 100%;
+      transition: width 0.15s;
+    }
+    .bar-fill-mp {
+      height: 100%;
+      background: #3498db;
+      width: 100%;
+      transition: width 0.15s;
+    }
+    .hud-stats {
+      font-size: 11px;
+      font-weight: bold;
+      color: #f1c40f;
+      text-shadow: 1px 1px 2px #000;
+      background: rgba(0,0,0,0.5);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .btn-menu-open {
+      pointer-events: auto;
+      background: #2b303c;
+      border: 1px solid #5a6275;
+      color: #fff;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Capa de Diálogo en Alta Definición */
+    #dialog-box {
+      display: none;
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      background: rgba(13, 16, 23, 0.95);
+      border: 2px solid #d4af37;
+      border-radius: 6px;
+      padding: 10px 14px;
+      z-index: 20;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    }
+    #dialog-speaker {
+      font-size: 12px;
+      font-weight: bold;
+      color: #f39c12;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    #dialog-text {
+      font-size: 13px;
+      line-height: 1.35;
+      color: #ecf0f1;
+    }
+    #dialog-hint {
+      font-size: 10px;
+      color: #888;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    /* Ventana Unificada: Estado e Inventario */
+    #character-modal {
+      display: none;
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(17, 20, 28, 0.98);
+      border: 2px solid #4a5568;
+      border-radius: 8px;
+      z-index: 30;
+      flex-direction: column;
+      padding: 10px;
+      box-shadow: 0 0 25px #000;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #333d4d;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+    }
+    .tab-btn {
+      background: #252a36;
+      border: 1px solid #3d4659;
+      color: #aaa;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: #3b4254;
+      color: #fff;
+      border-color: #f1c40f;
+    }
+    .btn-close {
+      background: #c0392b;
+      border: none;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Pestaña Estado */
+    #tab-status {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    #tab-status.active { display: flex; }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      background: #1a1e27;
+      padding: 6px 10px;
+      border-radius: 4px;
+      align-items: center;
+    }
+    .btn-add-stat {
+      background: #27ae60;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      font-size: 12px;
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-add-stat:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+
+    /* Pestaña Inventario */
+    #tab-inventory {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #tab-inventory.active { display: flex; }
+    .inv-columns {
+      display: flex;
+      gap: 10px;
+      flex: 1;
+    }
+    .equip-slots {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100px;
+    }
+    .slot-equip {
+      background: #1a1e27;
+      border: 1px dashed #4b5563;
+      border-radius: 4px;
+      font-size: 10px;
+      padding: 6px;
+      text-align: center;
+      color: #888;
+    }
+    .inv-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 4px;
+      flex: 1;
+    }
+    .inv-cell {
+      background: #161a22;
+      border: 1px solid #2d3748;
+      border-radius: 4px;
+      min-height: 38px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      position: relative;
+      cursor: pointer;
+    }
+    .inv-cell.selected {
+      border-color: #f1c40f;
+      background: #222938;
+    }
+    .inv-stack {
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+      font-size: 9px;
+      color: #fff;
+      font-weight: bold;
+    }
+    #item-detail {
+      background: #141720;
+      border-top: 1px solid #2d3748;
+      padding: 6px 8px;
+      font-size: 11px;
+      min-height: 50px;
+    }
+
     /* Controles táctiles */
     #touch-controls {
       display: flex;
       justify-content: space-between;
       width: 100%;
       max-width: 480px;
-      padding: 12px 16px;
+      padding: 10px 16px;
       touch-action: none;
     }
     .dpad {
@@ -43,34 +304,108 @@
       gap: 3px;
     }
     .touch-btn {
-      background: rgba(45, 52, 71, 0.75);
-      border: 2px solid #5d6785;
+      background: rgba(37, 43, 58, 0.7);
+      border: 2px solid #4a5568;
       color: #fff;
       font-weight: bold;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 14px;
     }
-    .touch-btn:active { background: rgba(93, 103, 133, 0.9); }
+    .touch-btn:active { background: rgba(74, 85, 104, 0.9); }
     .btn-action {
       width: 68px;
       height: 68px;
       border-radius: 50%;
-      background: rgba(184, 50, 50, 0.8);
+      background: rgba(192, 57, 43, 0.8);
       border: 3px solid #e74c3c;
-      font-size: 15px;
+      font-size: 14px;
       align-self: center;
     }
-    .btn-action:active { background: #c0392b; }
+    .btn-action:active { background: #b03a2e; }
   </style>
 </head>
 <body>
 
-  <div id="game-container">
+  <div id="viewport">
     <canvas id="gameCanvas" width="320" height="240"></canvas>
+
+    <!-- HUD Nativo -->
+    <div id="hud-top">
+      <div class="hud-bars">
+        <div class="bar-wrap"><div id="hp-bar" class="bar-fill-hp"></div></div>
+        <div class="bar-wrap"><div id="mp-bar" class="bar-fill-mp"></div></div>
+      </div>
+      <div class="hud-stats">
+        <span id="txt-level">Nv. 1</span> | <span id="txt-gold">10 O</span>
+      </div>
+      <button class="btn-menu-open" id="btn-open-menu">MENÚ</button>
+    </div>
+
+    <!-- Caja de Diálogo HD -->
+    <div id="dialog-box">
+      <div id="dialog-speaker">Nombre</div>
+      <div id="dialog-text">Mensaje aquí...</div>
+      <div id="dialog-hint">[Toca ATK o presiona Espacio para continuar]</div>
+    </div>
+
+    <!-- Modal de Personaje (Estado / Inventario) -->
+    <div id="character-modal">
+      <div class="modal-header">
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-btn-status">ESTADO</button>
+          <button class="tab-btn" id="tab-btn-inv">INVENTARIO</button>
+        </div>
+        <button class="btn-close" id="btn-close-modal">X</button>
+      </div>
+
+      <!-- Pestaña Estado -->
+      <div id="tab-status" class="tab-content active">
+        <div class="status-row">
+          <span>Puntos disponibles:</span>
+          <strong id="stat-points" style="color: #f1c40f;">0</strong>
+        </div>
+        <div class="status-row">
+          <span>FUE (Fuerza): <b id="val-fue">10</b></span>
+          <button class="btn-add-stat" data-stat="fue">+</button>
+        </div>
+        <div class="status-row">
+          <span>DES (Destreza): <b id="val-des">10</b></span>
+          <button class="btn-add-stat" data-stat="des">+</button>
+        </div>
+        <div class="status-row">
+          <span>CON (Constitución): <b id="val-con">10</b></span>
+          <button class="btn-add-stat" data-stat="con">+</button>
+        </div>
+        <div class="status-row">
+          <span>INT (Inteligencia): <b id="val-int">10</b></span>
+          <button class="btn-add-stat" data-stat="int">+</button>
+        </div>
+        <div class="status-row">
+          <span>Ataque: <b id="val-atk">15</b></span>
+          <span>Defensa: <b id="val-def">5</b></span>
+        </div>
+      </div>
+
+      <!-- Pestaña Inventario -->
+      <div id="tab-inventory" class="tab-content">
+        <div class="inv-columns">
+          <div class="equip-slots">
+            <div class="slot-equip" id="slot-weapon">Espada Recluta</div>
+            <div class="slot-equip" id="slot-armor">Peto Cuero</div>
+          </div>
+          <div class="inv-grid" id="inv-grid">
+            <!-- 16 casillas creadas por JS -->
+          </div>
+        </div>
+        <div id="item-detail">Toca un objeto para ver su descripción.</div>
+      </div>
+    </div>
   </div>
 
+  <!-- Controles táctiles -->
   <div id="touch-controls">
     <div class="dpad">
       <div></div><button class="touch-btn" id="btn-up">▲</button><div></div>
@@ -83,58 +418,67 @@
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
 
-    function resizeCanvas() {
+    // Escalar lienzo
+    function resize() {
       const scale = Math.min(window.innerWidth / 330, (window.innerHeight - 150) / 250, 2.5);
       canvas.style.width = Math.floor(320 * scale) + "px";
       canvas.style.height = Math.floor(240 * scale) + "px";
     }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+    window.addEventListener("resize", resize);
+    resize();
 
     // Estado del Jugador
     const player = {
-      x: 152, y: 120, w: 16, h: 16,
-      speed: 1.8, dir: "down",
+      x: 152, y: 150, w: 16, h: 16,
+      speed: 1.8, dir: "up",
       hp: 100, maxHp: 100,
+      mp: 40, maxMp: 40,
+      level: 1, exp: 0, nextExp: 40,
+      gold: 15, statPoints: 3,
+      stats: { fue: 10, des: 10, con: 10, int: 10 },
+      inv: [
+        { id: "poc_hp", name: "Poción HP", count: 3, desc: "Recupera 40 HP al instante." },
+        { id: "gel_slime", name: "Gelatina", count: 2, desc: "Resto viscoso de Slime de Musgo." }
+      ],
       attackCooldown: 0,
-      attackBox: null
-    };
-
-    // NPC: Maestro Torval
-    const npcTorval = {
-      x: 70, y: 70, w: 16, h: 16,
-      name: "Torval",
-      dialog: "¡Mantén firme la guardia! Las bestias del bosque acechan."
-    };
-
-    // Muñeco de práctica
-    const dummy = {
-      x: 230, y: 80, w: 16, h: 16,
-      hp: 100, maxHp: 100,
+      attackBox: null,
       hurtTimer: 0
     };
 
-    // Números flotantes de daño
+    // Control de Mapa Activo
+    let currentMap = "oakhaven"; // "oakhaven" o "bosque"
+
+    // NPCs y Enemigos
+    const torval = { x: 80, y: 80, w: 16, h: 16, name: "Torval", dialog: "Más allá de la Puerta Norte está el Bosque Susurrante. ¡Mantén tu espada lista!" };
+
+    let slimes = [];
+    function spawnSlimes() {
+      slimes = [
+        { x: 70, y: 80, w: 16, h: 16, hp: 30, maxHp: 30, state: "idle", timer: 30, vx: 0, vy: 0, hurtTimer: 0 },
+        { x: 210, y: 90, w: 16, h: 16, hp: 30, maxHp: 30, state: "idle", timer: 50, vx: 0, vy: 0, hurtTimer: 0 },
+        { x: 140, y: 60, w: 16, h: 16, hp: 30, maxHp: 30, state: "idle", timer: 40, vx: 0, vy: 0, hurtTimer: 0 }
+      ];
+    }
+    spawnSlimes();
+
     let damageNumbers = [];
+    let isMenuOpen = false;
 
-    // Sistema de diálogo
-    let activeDialog = null;
-
-    // Entradas
-    const keys = { up: false, down: false, left: false, right: false, action: false, actionPressed: false };
-
+    // Teclado
+    const keys = { up: false, down: false, left: false, right: false, action: false, actionJustPressed: false };
     window.addEventListener("keydown", (e) => {
       if (e.key === "ArrowUp" || e.key === "w") keys.up = true;
       if (e.key === "ArrowDown" || e.key === "s") keys.down = true;
       if (e.key === "ArrowLeft" || e.key === "a") keys.left = true;
       if (e.key === "ArrowRight" || e.key === "d") keys.right = true;
       if (e.key === " " || e.key === "z" || e.key === "Enter") {
-        if (!keys.action) keys.actionPressed = true;
+        if (!keys.action) keys.actionJustPressed = true;
         keys.action = true;
       }
+      if (e.key === "c" || e.key === "i") toggleMenu();
     });
-
     window.addEventListener("keyup", (e) => {
       if (e.key === "ArrowUp" || e.key === "w") keys.up = false;
       if (e.key === "ArrowDown" || e.key === "s") keys.down = false;
@@ -143,57 +487,216 @@
       if (e.key === " " || e.key === "z" || e.key === "Enter") keys.action = false;
     });
 
-    function bindTouch(id) {
-      const btn = document.getElementById(id);
-      const keyMap = { "btn-up": "up", "btn-down": "down", "btn-left": "left", "btn-right": "right" };
-      if (id === "btn-atk") {
-        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); keys.action = true; keys.actionPressed = true; });
-        btn.addEventListener("pointerup", (e) => { e.preventDefault(); keys.action = false; });
-      } else {
-        btn.addEventListener("pointerdown", (e) => { e.preventDefault(); keys[keyMap[id]] = true; });
-        btn.addEventListener("pointerup", (e) => { e.preventDefault(); keys[keyMap[id]] = false; });
-        btn.addEventListener("pointercancel", (e) => { e.preventDefault(); keys[keyMap[id]] = false; });
+    // Táctil
+    function bindTouch(id, key) {
+      const el = document.getElementById(id);
+      el.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        keys[key] = true;
+        if (key === "action") keys.actionJustPressed = true;
+      });
+      el.addEventListener("pointerup", (e) => { e.preventDefault(); keys[key] = false; });
+      el.addEventListener("pointercancel", (e) => { e.preventDefault(); keys[key] = false; });
+    }
+    bindTouch("btn-up", "up");
+    bindTouch("btn-down", "down");
+    bindTouch("btn-left", "left");
+    bindTouch("btn-right", "right");
+    bindTouch("btn-atk", "action");
+
+    // Diálogo HD
+    const dialogBox = document.getElementById("dialog-box");
+    const dialogSpeaker = document.getElementById("dialog-speaker");
+    const dialogText = document.getElementById("dialog-text");
+    let activeDialog = null;
+
+    function showDialog(speaker, text) {
+      activeDialog = { speaker, text };
+      dialogSpeaker.innerText = speaker;
+      dialogText.innerText = text;
+      dialogBox.style.display = "block";
+    }
+    function closeDialog() {
+      activeDialog = null;
+      dialogBox.style.display = "none";
+    }
+
+    // Modal Menú
+    const charModal = document.getElementById("character-modal");
+    document.getElementById("btn-open-menu").addEventListener("click", toggleMenu);
+    document.getElementById("btn-close-modal").addEventListener("click", toggleMenu);
+
+    function toggleMenu() {
+      isMenuOpen = !isMenuOpen;
+      charModal.style.display = isMenuOpen ? "flex" : "none";
+      if (isMenuOpen) {
+        updateUI();
+        renderInventory();
       }
     }
-    ["btn-up", "btn-down", "btn-left", "btn-right", "btn-atk"].forEach(bindTouch);
 
+    // Pestañas
+    const tabBtnStatus = document.getElementById("tab-btn-status");
+    const tabBtnInv = document.getElementById("tab-btn-inv");
+    const tabStatus = document.getElementById("tab-status");
+    const tabInv = document.getElementById("tab-inventory");
+
+    tabBtnStatus.addEventListener("click", () => {
+      tabBtnStatus.classList.add("active");
+      tabBtnInv.classList.remove("active");
+      tabStatus.classList.add("active");
+      tabInv.classList.remove("active");
+    });
+    tabBtnInv.addEventListener("click", () => {
+      tabBtnInv.classList.add("active");
+      tabBtnStatus.classList.remove("active");
+      tabInv.classList.add("active");
+      tabStatus.classList.remove("active");
+      renderInventory();
+    });
+
+    // Atributos (+)
+    document.querySelectorAll(".btn-add-stat").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const stat = btn.getAttribute("data-stat");
+        if (player.statPoints > 0) {
+          player.stats[stat]++;
+          player.statPoints--;
+          if (stat === "con") player.maxHp += 12;
+          if (stat === "int") player.maxMp += 8;
+          updateUI();
+        }
+      });
+    });
+
+    function updateUI() {
+      document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
+      document.getElementById("mp-bar").style.width = (player.mp / player.maxMp * 100) + "%";
+      document.getElementById("txt-level").innerText = "Nv. " + player.level;
+      document.getElementById("txt-gold").innerText = player.gold + " O";
+
+      document.getElementById("stat-points").innerText = player.statPoints;
+      document.getElementById("val-fue").innerText = player.stats.fue;
+      document.getElementById("val-des").innerText = player.stats.des;
+      document.getElementById("val-con").innerText = player.stats.con;
+      document.getElementById("val-int").innerText = player.stats.int;
+      document.getElementById("val-atk").innerText = Math.floor(player.stats.fue * 1.5 + 5);
+      document.getElementById("val-def").innerText = Math.floor(player.stats.con * 0.8);
+
+      document.querySelectorAll(".btn-add-stat").forEach(b => {
+        b.disabled = player.statPoints <= 0;
+      });
+    }
+
+    // Inventario Grid
+    function renderInventory() {
+      const grid = document.getElementById("inv-grid");
+      grid.innerHTML = "";
+      for (let i = 0; i < 16; i++) {
+        const cell = document.createElement("div");
+        cell.className = "inv-cell";
+        const item = player.inv[i];
+        if (item) {
+          cell.innerText = item.name.substring(0, 7);
+          if (item.count > 1) {
+            const st = document.createElement("span");
+            st.className = "inv-stack";
+            st.innerText = "x" + item.count;
+            cell.appendChild(st);
+          }
+          cell.onclick = () => {
+            document.querySelectorAll(".inv-cell").forEach(c => c.classList.remove("selected"));
+            cell.classList.add("selected");
+            document.getElementById("item-detail").innerText = `${item.name}: ${item.desc}`;
+          };
+        } else {
+          cell.onclick = () => {
+            document.querySelectorAll(".inv-cell").forEach(c => c.classList.remove("selected"));
+            document.getElementById("item-detail").innerText = "Casilla vacía.";
+          };
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    // Recompensas al matar enemigo
+    function gainRewards(exp, gold) {
+      player.exp += exp;
+      player.gold += gold;
+      if (player.exp >= player.nextExp) {
+        player.level++;
+        player.exp -= player.nextExp;
+        player.nextExp = Math.floor(player.nextExp * 1.4);
+        player.statPoints += 3;
+        player.hp = player.maxHp;
+        damageNumbers.push({ x: player.x, y: player.y - 10, text: "¡SUBES DE NIVEL!", color: "#2ecc71", alpha: 1.5 });
+      }
+      updateUI();
+    }
+
+    // Bucle de Juego (Update)
     function update() {
-      // Si hay cuadro de diálogo abierto
+      if (isMenuOpen) return;
+
       if (activeDialog) {
-        if (keys.actionPressed) {
-          activeDialog = null;
-          keys.actionPressed = false;
+        if (keys.actionJustPressed) {
+          closeDialog();
+          keys.actionJustPressed = false;
         }
         return;
       }
 
-      // Movimiento
+      // Movimiento jugador
       let dx = 0, dy = 0;
       if (keys.up) { dy -= 1; player.dir = "up"; }
       if (keys.down) { dy += 1; player.dir = "down"; }
       if (keys.left) { dx -= 1; player.dir = "left"; }
       if (keys.right) { dx += 1; player.dir = "right"; }
-
       if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
 
-      // Límites del patio de Oakhaven (colisión con bordes)
-      player.x = Math.max(24, Math.min(296 - player.w, player.x + dx * player.speed));
-      player.y = Math.max(34, Math.min(220 - player.h, player.y + dy * player.speed));
+      player.x += dx * player.speed;
+      player.y += dy * player.speed;
 
-      // Acción: Atacar o Hablar
-      if (player.attackCooldown > 0) player.attackCooldown--;
-
-      if (keys.actionPressed) {
-        keys.actionPressed = false;
-
-        // Comprobar cercanía con el NPC Torval para hablar
-        const distNpc = Math.hypot((player.x + 8) - (npcTorval.x + 8), (player.y + 8) - (npcTorval.y + 8));
-        if (distNpc < 24) {
-          activeDialog = { speaker: npcTorval.name, text: npcTorval.dialog };
+      // Límites y Traspaso de Puertas
+      if (currentMap === "oakhaven") {
+        // Puerta Norte -> Bosque
+        if (player.y < 22 && player.x > 140 && player.x < 176) {
+          currentMap = "bosque";
+          player.y = 216; // Aparece al sur del bosque
+          spawnSlimes(); // Respawn híbrido
           return;
         }
+        // Muros Oakhaven
+        player.x = Math.max(22, Math.min(298 - player.w, player.x));
+        player.y = Math.max(24, Math.min(218 - player.h, player.y));
+      } else if (currentMap === "bosque") {
+        // Regreso por el Sur -> Oakhaven
+        if (player.y > 222) {
+          currentMap = "oakhaven";
+          player.y = 30; // Aparece bajo la puerta norte
+          return;
+        }
+        // Límites bosque
+        player.x = Math.max(16, Math.min(304 - player.w, player.x));
+        player.y = Math.max(20, player.y);
+      }
 
-        // Ejecutar ataque si no está en cooldown
+      // Ataque y Diálogo
+      if (player.attackCooldown > 0) player.attackCooldown--;
+
+      if (keys.actionJustPressed) {
+        keys.actionJustPressed = false;
+
+        // Hablar con Torval si está cerca (solo en Oakhaven)
+        if (currentMap === "oakhaven") {
+          const distNpc = Math.hypot((player.x + 8) - (torval.x + 8), (player.y + 8) - (torval.y + 8));
+          if (distNpc < 24) {
+            showDialog(torval.name, torval.dialog);
+            return;
+          }
+        }
+
+        // Ataque de espada
         if (player.attackCooldown === 0) {
           player.attackCooldown = 18;
           let hb = { x: player.x, y: player.y, w: 16, h: 16 };
@@ -203,77 +706,178 @@
           if (player.dir === "right") { hb.x += player.w; hb.w = 14; }
           player.attackBox = hb;
 
-          // Impacto en el muñeco de prueba
-          if (
-            hb.x < dummy.x + dummy.w && hb.x + hb.w > dummy.x &&
-            hb.y < dummy.y + dummy.h && hb.y + hb.h > dummy.y
-          ) {
-            const dmg = 15;
-            dummy.hp = Math.max(0, dummy.hp - dmg);
-            dummy.hurtTimer = 8;
-            if (player.dir === "up") dummy.y -= 6;
-            if (player.dir === "down") dummy.y += 6;
-            if (player.dir === "left") dummy.x -= 6;
-            if (player.dir === "right") dummy.x += 6;
+          // Golpear Slimes en el Bosque
+          if (currentMap === "bosque") {
+            const playerDmg = Math.floor(player.stats.fue * 1.5 + 4);
+            slimes.forEach(sl => {
+              if (sl.hp > 0 &&
+                  hb.x < sl.x + sl.w && hb.x + hb.w > sl.x &&
+                  hb.y < sl.y + sl.h && hb.y + hb.h > sl.y) {
+                sl.hp -= playerDmg;
+                sl.hurtTimer = 10;
+                // Retroceso
+                if (player.dir === "up") sl.y -= 12;
+                if (player.dir === "down") sl.y += 12;
+                if (player.dir === "left") sl.x -= 12;
+                if (player.dir === "right") sl.x += 12;
 
-            damageNumbers.push({ x: dummy.x + 4, y: dummy.y - 4, text: dmg, alpha: 1 });
-            if (dummy.hp <= 0) dummy.hp = dummy.maxHp; // Se restablece para seguir practicando
+                damageNumbers.push({ x: sl.x + 4, y: sl.y - 4, text: playerDmg, color: "#f1c40f", alpha: 1 });
+                if (sl.hp <= 0) {
+                  gainRewards(12, 4);
+                  // Añadir gelatina a la mochila
+                  const item = player.inv.find(i => i.id === "gel_slime");
+                  if (item) item.count++;
+                }
+              }
+            });
           }
         }
       }
 
       if (player.attackCooldown < 10) player.attackBox = null;
-      if (dummy.hurtTimer > 0) dummy.hurtTimer--;
+      if (player.hurtTimer > 0) player.hurtTimer--;
 
-      // Animar números flotantes
-      damageNumbers.forEach(n => { n.y -= 0.5; n.alpha -= 0.03; });
+      // Lógica de IA Slimes (en Bosque)
+      if (currentMap === "bosque") {
+        slimes.forEach(sl => {
+          if (sl.hp <= 0) return;
+          if (sl.hurtTimer > 0) sl.hurtTimer--;
+
+          const dist = Math.hypot(player.x - sl.x, player.y - sl.y);
+
+          // Persecución si entra en rango
+          if (dist < 75) {
+            sl.state = "chase";
+            const angle = Math.atan2(player.y - sl.y, player.x - sl.x);
+            sl.x += Math.cos(angle) * 0.9;
+            sl.y += Math.sin(angle) * 0.9;
+
+            // Daño al jugador por contacto
+            if (dist < 12 && player.hurtTimer === 0) {
+              player.hp = Math.max(0, player.hp - 8);
+              player.hurtTimer = 25; // I-frames
+              damageNumbers.push({ x: player.x, y: player.y - 6, text: 8, color: "#e74c3c", alpha: 1 });
+              updateUI();
+              if (player.hp === 0) {
+                // Muerte: reaparece en el pueblo
+                currentMap = "oakhaven";
+                player.x = 152; player.y = 150;
+                player.hp = player.maxHp;
+                damageNumbers.push({ x: player.x, y: player.y - 12, text: "HAS CAÍDO", color: "#e74c3c", alpha: 2 });
+                updateUI();
+              }
+            }
+          } else {
+            // Patrulla aleatoria
+            sl.state = "idle";
+            sl.timer--;
+            if (sl.timer <= 0) {
+              sl.vx = (Math.random() - 0.5) * 1.2;
+              sl.vy = (Math.random() - 0.5) * 1.2;
+              sl.timer = 40 + Math.random() * 40;
+            }
+            sl.x += sl.vx;
+            sl.y += sl.vy;
+            sl.x = Math.max(20, Math.min(290, sl.x));
+            sl.y = Math.max(30, Math.min(210, sl.y));
+          }
+        });
+      }
+
+      // Actualizar números de daño
+      damageNumbers.forEach(n => { n.y -= 0.4; n.alpha -= 0.025; });
       damageNumbers = damageNumbers.filter(n => n.alpha > 0);
     }
 
+    // Dibujado (Canvas Pixelado)
     function draw() {
       ctx.clearRect(0, 0, 320, 240);
 
-      // Suelo de adoquines de Oakhaven
-      ctx.fillStyle = "#2d323f";
-      ctx.fillRect(0, 0, 320, 240);
+      if (currentMap === "oakhaven") {
+        // Suelo Oakhaven
+        ctx.fillStyle = "#2c3440";
+        ctx.fillRect(0, 0, 320, 240);
 
-      // Muros del recinto
-      ctx.fillStyle = "#1b1d28";
-      ctx.fillRect(0, 0, 320, 24);
-      ctx.fillRect(0, 226, 320, 14);
-      ctx.fillRect(0, 0, 18, 240);
-      ctx.fillRect(302, 0, 18, 240);
+        // Muros de piedra
+        ctx.fillStyle = "#1b1f27";
+        ctx.fillRect(0, 0, 320, 24);
+        ctx.fillRect(0, 224, 320, 16);
+        ctx.fillRect(0, 0, 18, 240);
+        ctx.fillRect(302, 0, 18, 240);
 
-      // Puerta Norte (hacia el Bosque) y Puerta Sur (hacia las Ruinas)
-      ctx.fillStyle = "#8a6f4d";
-      ctx.fillRect(144, 0, 32, 24);
-      ctx.fillRect(144, 226, 32, 14);
+        // Puerta Norte (abierta hacia el bosque)
+        ctx.fillStyle = "#2e7d32";
+        ctx.fillRect(144, 0, 32, 24);
 
-      // NPC Torval (Verde bosque con emblema de forja)
-      ctx.fillStyle = "#27ae60";
-      ctx.fillRect(npcTorval.x, npcTorval.y, npcTorval.w, npcTorval.h);
-      ctx.fillStyle = "#f1c40f";
-      ctx.font = "8px monospace";
-      ctx.fillText("[Torval]", npcTorval.x - 8, npcTorval.y - 4);
+        // Casa / Herrería
+        ctx.fillStyle = "#3d4852";
+        ctx.fillRect(60, 50, 55, 45);
+        ctx.fillStyle = "#e67e22";
+        ctx.fillRect(80, 80, 16, 16); // Puerta forja
 
-      // Muñeco de paja
-      ctx.fillStyle = dummy.hurtTimer > 0 ? "#ffffff" : "#d35400";
-      ctx.fillRect(dummy.x, dummy.y, dummy.w, dummy.h);
-      ctx.fillStyle = "#aaa";
-      ctx.fillText("Muñeco", dummy.x - 4, dummy.y - 4);
+        // Torval
+        ctx.fillStyle = "#27ae60";
+        ctx.fillRect(torval.x, torval.y, torval.w, torval.h);
 
-      // Jugador (Azul templario)
-      ctx.fillStyle = "#2980b9";
-      ctx.fillRect(player.x, player.y, player.w, player.h);
+        // Nombre de zona
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.font = "8px monospace";
+        ctx.fillText("Aldea de Oakhaven", 115, 234);
 
-      // Indicador de orientación del jugador
-      ctx.fillStyle = "#ecf0f1";
-      if (player.dir === "up") ctx.fillRect(player.x + 5, player.y + 2, 6, 3);
-      if (player.dir === "down") ctx.fillRect(player.x + 5, player.y + 11, 6, 3);
-      if (player.dir === "left") ctx.fillRect(player.x + 2, player.y + 5, 3, 6);
-      if (player.dir === "right") ctx.fillRect(player.x + 11, player.y + 5, 3, 6);
+      } else if (currentMap === "bosque") {
+        // Suelo Bosque
+        ctx.fillStyle = "#1e392a";
+        ctx.fillRect(0, 0, 320, 240);
 
-      // Tajo de espada activo
+        // Sendero de tierra
+        ctx.fillStyle = "#3b3123";
+        ctx.fillRect(140, 0, 40, 240);
+
+        // Árboles perimetrales
+        ctx.fillStyle = "#0f2218";
+        ctx.fillRect(0, 0, 320, 20);
+        ctx.fillRect(0, 0, 20, 240);
+        ctx.fillRect(300, 0, 20, 240);
+
+        // Salida Sur hacia Oakhaven
+        ctx.fillStyle = "#2c3440";
+        ctx.fillRect(140, 230, 40, 10);
+
+        // Slimes de Musgo
+        slimes.forEach(sl => {
+          if (sl.hp <= 0) return;
+          ctx.fillStyle = sl.hurtTimer > 0 ? "#ffffff" : "#2ecc71";
+          ctx.fillRect(sl.x, sl.y, sl.w, sl.h);
+          // Ojos
+          ctx.fillStyle = "#000";
+          ctx.fillRect(sl.x + 3, sl.y + 4, 3, 3);
+          ctx.fillRect(sl.x + 10, sl.y + 4, 3, 3);
+          // Barra de HP del Slime
+          ctx.fillStyle = "#000";
+          ctx.fillRect(sl.x, sl.y - 3, 16, 2);
+          ctx.fillStyle = "#e74c3c";
+          ctx.fillRect(sl.x, sl.y - 3, (sl.hp / sl.maxHp) * 16, 2);
+        });
+
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.font = "8px monospace";
+        ctx.fillText("El Bosque Susurrante", 108, 14);
+      }
+
+      // Jugador
+      if (player.hurtTimer % 4 < 2) {
+        ctx.fillStyle = "#3498db";
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+
+        // Ojos/visor direccional
+        ctx.fillStyle = "#f1c40f";
+        if (player.dir === "up") ctx.fillRect(player.x + 5, player.y + 2, 6, 3);
+        if (player.dir === "down") ctx.fillRect(player.x + 5, player.y + 11, 6, 3);
+        if (player.dir === "left") ctx.fillRect(player.x + 2, player.y + 5, 3, 6);
+        if (player.dir === "right") ctx.fillRect(player.x + 11, player.y + 5, 3, 6);
+      }
+
+      // Tajo de espada
       if (player.attackBox) {
         ctx.fillStyle = "#f39c12";
         ctx.fillRect(player.attackBox.x, player.attackBox.y, player.attackBox.w, player.attackBox.h);
@@ -281,30 +885,10 @@
 
       // Números flotantes de daño
       damageNumbers.forEach(n => {
-        ctx.fillStyle = `rgba(241, 196, 15, ${n.alpha})`;
-        ctx.font = "bold 10px monospace";
+        ctx.fillStyle = n.color || "#fff";
+        ctx.font = "bold 9px monospace";
         ctx.fillText(n.text, n.x, n.y);
       });
-
-      // Caja de diálogo clásica retro
-      if (activeDialog) {
-        ctx.fillStyle = "rgba(10, 12, 18, 0.92)";
-        ctx.strokeStyle = "#f1c40f";
-        ctx.lineWidth = 2;
-        ctx.fillRect(16, 150, 288, 74);
-        ctx.strokeRect(16, 150, 288, 74);
-
-        ctx.fillStyle = "#f39c12";
-        ctx.font = "bold 9px monospace";
-        ctx.fillText(activeDialog.speaker, 26, 166);
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "8px monospace";
-        ctx.fillText(activeDialog.text, 26, 184);
-
-        ctx.fillStyle = "#bdc3c7";
-        ctx.fillText("[Toca ATK / Espacio para cerrar]", 130, 214);
-      }
     }
 
     function gameLoop() {
@@ -313,6 +897,7 @@
       requestAnimationFrame(gameLoop);
     }
     gameLoop();
+    updateUI();
   </script>
 </body>
 </html>
